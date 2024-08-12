@@ -2,9 +2,11 @@ name: Ecommerce CI/CD Workflow
 
 on:
   push:
-    branches: [ main ]
+    branches: 
+      - main
   pull_request:
-    branches: [ main ]
+    branches: 
+      - main
 
 env:
   CUSTOM_VAR: value
@@ -23,60 +25,46 @@ jobs:
       - name: Use secret
         run: |
           echo "Access Token: ${{ secrets.ACCESS_TOKEN }}"
-
       - name: Checkout code
         uses: actions/checkout@v2
-
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
           node-version: '14'
-
       - name: Cache dependencies
         uses: actions/cache@v2
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
           restore-keys: ${{ runner.os }}-node-
-
-      - name: Frontend: Install dependencies
+      - name: Frontend Install dependencies
         run: cd frontend && npm install
-
-      - name: Frontend: Test
+      - name: Frontend Test
         run: cd frontend && npm test
-
-      - name: Frontend: Build
+      - name: Frontend Build
         run: cd frontend && npm run build
-
       - name: Cache frontend build
         uses: actions/cache@v2
         with:
           path: frontend/build
           key: ${{ runner.os }}-frontend-${{ hashFiles('**/build') }}
           restore-keys: ${{ runner.os }}-frontend-
-
       - name: Build frontend Docker image
         run: docker build -t frontend-image ./frontend
-
-      - name: Backend: Install dependencies
+      - name: Backend Install dependencies
         run: cd backend && npm install
-
-      - name: Backend: Test
+      - name: Backend Test
         run: cd backend && npm test
-
-      - name: Backend: Build
+      - name: Backend Build
         run: cd backend && npm run build
-
       - name: Cache backend build
         uses: actions/cache@v2
         with:
           path: backend/build
           key: ${{ runner.os }}-backend-${{ hashFiles('**/build') }}
           restore-keys: ${{ runner.os }}-backend-
-
       - name: Build backend Docker image
         run: docker build -t backend-image ./backend
-
       - name: Publish Docker images
         run: |
           echo ${{ secrets.DOCKERHUB_TOKEN }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
