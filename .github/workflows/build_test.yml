@@ -15,14 +15,12 @@ jobs:
     permissions:
       contents: read
       packages: write
-
     services:
       redis:
         image: redis
         options: --entrypoint "redis-server --requirepass password"
-
     steps:
-      - name: use secret
+      - name: Use secret
         run: |
           echo "Access Token: ${{ secrets.ACCESS_TOKEN }}"
 
@@ -39,16 +37,15 @@ jobs:
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
+          restore-keys: ${{ runner.os }}-node-
 
-      - name: Install frontend dependencies
+      - name: Frontend: Install dependencies
         run: cd frontend && npm install
 
-      - name: Test frontend
+      - name: Frontend: Test
         run: cd frontend && npm test
 
-      - name: Build frontend
+      - name: Frontend: Build
         run: cd frontend && npm run build
 
       - name: Cache frontend build
@@ -56,19 +53,18 @@ jobs:
         with:
           path: frontend/build
           key: ${{ runner.os }}-frontend-${{ hashFiles('**/build') }}
-          restore-keys: |
-            ${{ runner.os }}-frontend-
+          restore-keys: ${{ runner.os }}-frontend-
 
       - name: Build frontend Docker image
         run: docker build -t frontend-image ./frontend
 
-      - name: Install backend dependencies
+      - name: Backend: Install dependencies
         run: cd backend && npm install
 
-      - name: Test backend
+      - name: Backend: Test
         run: cd backend && npm test
 
-      - name: Build backend
+      - name: Backend: Build
         run: cd backend && npm run build
 
       - name: Cache backend build
@@ -76,8 +72,7 @@ jobs:
         with:
           path: backend/build
           key: ${{ runner.os }}-backend-${{ hashFiles('**/build') }}
-          restore-keys: |
-            ${{ runner.os }}-backend-
+          restore-keys: ${{ runner.os }}-backend-
 
       - name: Build backend Docker image
         run: docker build -t backend-image ./backend
