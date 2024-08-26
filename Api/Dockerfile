@@ -14,10 +14,7 @@ FROM node:${NODE_VERSION}-alpine
 ENV NODE_ENV production
 
 
-WORKDIR /app
-
-# Copy the backend code into the Docker image
-COPY C:/Users/lenovo/Ecommerce-platform/Api/app.js /app/
+WORKDIR /Api/app.js
 
 
 # Download dependencies as a separate step to take advantage of Docker's caching.
@@ -39,5 +36,5 @@ COPY . .
 EXPOSE 3030
 
 # Run the application.
-CMD ["node", "app.js"]
+CMD ["node", "/Api/app.js"]
 
