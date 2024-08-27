@@ -8,8 +8,15 @@ const app = express();
 // Middleware
 app.use(bodyParser.json());
 
-// Connect to MongoDB (replace <YourMongoDBURL> with your actual MongoDB URL)
-mongoose.connect('<YourMongoDBURL>', { useNewUrlParser: true, useUnifiedTopology: true });
+// Connect to MongoDB
+mongoose.connect(
+  'mongodb+srv://opeyf:Pawpaw3999@cluster0.nk19h.mongodb.net/ecommerce_platform?retryWrites=true&w=majority',
+  { useNewUrlParser: true, useUnifiedTopology: true }
+).then(() => {
+  console.log('Connected to MongoDB');
+}).catch((error) => {
+  console.error('Error connecting to MongoDB:', error);
+});
 
 // Basic Routes for E-Commerce
 app.get('/', (req, res) => {
@@ -71,4 +78,3 @@ const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
-
