@@ -23,14 +23,14 @@ jobs:
     # Step 3: Install dependencies
     - name: Install dependencies
       run: npm install
-      working-directory: ./backend
-
+      working-directory: ./ecommerce-backend
+    
     # Step 4: Run tests
     - name: Run tests
       run: npm test
-      working-directory: ./backend
-
+      working-directory: ./ecommerce-backend
+    
     # Step 5: Build the application
     - name: Build application
       run: npm run build
-      working-directory: ./backend
+      working-directory: ./ecommerce-backend
