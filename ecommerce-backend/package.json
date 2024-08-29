@@ -1,11 +1,11 @@
 {
   "name": "ecommerce-backend",
   "version": "1.0.0",
-  "main": "ecommerce-backend/Build/index.js", // Corrected path
+  "main": "ecommerce-backend/Build/index.js",
   "scripts": {
     "test": "jest",
-    "start": "node ecommerce-backend/Build/index.js", // Corrected relative path
-    "build": "node ecommerce-backend/Build/index.js"  // Corrected relative path
+    "start": "node ecommerce-backend/Build/index.js",
+    "build": "node ecommerce-backend/Build/index.js"
   },
   "keywords": [],
   "author": "",
