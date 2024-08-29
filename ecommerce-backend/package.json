@@ -1,11 +1,10 @@
 {
   "name": "ecommerce-backend",
   "version": "1.0.0",
-  "main": "Build/index.js",
+  "main": "index.js",
   "scripts": {
   "test": "jest",
-  "build": "node Build/index.js"
-  "build": "echo 'Build completed!'"
+  "build": "webpack"
   },
   
   "keywords": [],
