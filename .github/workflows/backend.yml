@@ -4,10 +4,15 @@ on:
   push:
     branches:
       - main
+env:
+  CUSTOM_VAR: value
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: READ
+      packages: WRITE
 
     steps:
     # Step 1: Checkout code
