@@ -1,12 +1,13 @@
 {
   "name": "ecommerce-backend",
   "version": "1.0.0",
-  "main": "ecommerce-backend/Build/index.js",
+  "main": "Build/index.js",
   "scripts": {
-    "test": "jest",
-    "start": "node ecommerce-backend/Build/index.js",
-    "build": "node ecommerce-backend/Build/index.js"
+  "test": "jest",
+  "start": "node Build/index.js",
+  "build": "node Build/index.js"
   },
+  
   "keywords": [],
   "author": "",
   "license": "ISC",
