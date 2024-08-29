@@ -4,7 +4,6 @@
   "main": "Build/index.js",
   "scripts": {
   "test": "jest",
-  "start": "node Build/index.js",
   "build": "node Build/index.js"
   },
   
