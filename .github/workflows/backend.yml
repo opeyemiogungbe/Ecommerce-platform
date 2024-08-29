@@ -5,34 +5,36 @@ on:
     branches:
       - main
 
+env:
+  CUSTOM_VAR: value
+
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: read
+      packages: write
     steps:
     # Step 1: Checkout code
     - name: Checkout code
       uses: actions/checkout@v3
-
+   
     # Step 2: Set up Node.js
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
-        node-version: '18.x'
-
+        node-version: '14.x'
+      
     # Step 3: Install dependencies
     - name: Install dependencies
       run: npm install
       working-directory: ./ecommerce-backend
-    
-    - name: Make jest executable
-      run: chmod +x /node_modules/.bin/jest
-    
+      
     # Step 4: Run tests
     - name: Run tests
       run: npm test
       working-directory: ./ecommerce-backend
-    
+      
     # Step 5: Build the application
     - name: Build application
       run: npm run build
