@@ -25,9 +25,6 @@ jobs:
       run: npm install
       working-directory: ./ecommerce-backend
     
-    - name: Make jest executable
-      run: chmod +x /node_modules/.bin/jest
-    
     # Step 4: Run tests
     - name: Run tests
       run: npm test
