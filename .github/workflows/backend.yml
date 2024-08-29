@@ -26,7 +26,7 @@ jobs:
       working-directory: ./ecommerce-backend
     
     - name: Make jest executable
-      run: chmod +x ./node_modules/.bin/jest
+      run: chmod +x /node_modules/.bin/jest
     
     # Step 4: Run tests
     - name: Run tests
