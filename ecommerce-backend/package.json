@@ -9,8 +9,8 @@
   "scripts": {
 
     "test": "jest",
-    
-    "build": "node index.js"
+    "start": "node ecommerce-backend/Build/index.js",
+    "build": "node ecommerce-backend/Build/index.js"
 
   },
 
