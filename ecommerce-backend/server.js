@@ -10,7 +10,7 @@ app.use(bodyParser.json());
 
 // Connect to MongoDB
 mongoose.connect(
-  'mongodb+srv://opeyf:Pawpaw3999@cluster0.nk19h.mongodb.net/ecommerce_platform?retryWrites=true&w=majority',
+  'mongodb+srv://opeyf:Pawpaw3999@cluster0.nk19h.mongodb.net/ecommerce_platform?retryWrites=true&w=majority&appName=Cluster0',
   { useNewUrlParser: true, useUnifiedTopology: true }
 ).then(() => {
   console.log('Connected to MongoDB');
