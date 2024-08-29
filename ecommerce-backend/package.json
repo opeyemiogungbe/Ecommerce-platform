@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "test": "jest"
-    "build": "node.js"
+    "build": "node index.js"
   },
   "keywords": [],
   "author": "",
