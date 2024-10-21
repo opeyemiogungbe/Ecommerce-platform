@@ -8,9 +8,9 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    permissions:                         # Grant necessary permissions for the workflow execution
-      contents: read                     # Read repository contents
-      id-token: write                    # Required for configuring AWS credentials
+    permissions:
+      contents: READ
+      packages: WRITE
 
     steps:
     - name: Checkout code
