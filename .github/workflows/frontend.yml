@@ -1,0 +1,60 @@
+name: Frontend CI/CD
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:                         # Grant necessary permissions for the workflow execution
+      contents: read                     # Read repository contents
+      id-token: write                    # Required for configuring AWS credentials
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: Cache Node.js dependencies   # Caching dependencies step
+      uses: actions/cache@v3
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
+
+    - name: Install dependencies
+      run: npm install
+      working-directory: ./webapp
+
+    - name: Run tests
+      run: npm test
+      working-directory: ./webapp
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v3
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Log in to Amazon ECR
+      id: login-ecr
+      run: |
+        aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | \
+        docker login --username AWS --password-stdin 381491862732.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+
+    - name: Build Docker image
+      run: docker build -t frontend:latest -f webapp/Dockerfile ./webapp
+
+    - name: Tag Docker image
+      run: docker tag frontend:latest 381491862732.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/frontend-repo:latest
+
+    - name: Push Docker image to ECR
+      run: docker push 381491862732.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/frontend-repo:latest
