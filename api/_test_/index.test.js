@@ -1,8 +1,10 @@
 const request = require('supertest');
-const app = require('../index');
+const app = require('../index'); // Ensure this points to your main app file
 
-it('GET /products should return a list of products', async () => {
-  const res = await request(app).get('/products');
-  expect(res.statusCode).toBe(200);
-  expect(res.body.length).toBeGreaterThan(0);
+describe('GET /products', () => {
+    it('should return a list of products', async () => {
+        const res = await request(app).get('/products');
+        expect(res.statusCode).toBe(200);
+        expect(res.body.length).toBeGreaterThan(0);
+    });
 });
