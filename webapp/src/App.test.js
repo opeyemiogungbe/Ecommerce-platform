@@ -1,8 +1,10 @@
+import React from 'react'; // Ensure React is imported
 import { render, screen } from '@testing-library/react';
-import App from './App'; // Adjust the path if necessary
+import App from './App';
 
-test('renders learn react link', () => {
+test('renders Product List heading', () => {
   render(<App />);
-  const linkElement = screen.getByText(/learn react/i);
-  expect(linkElement).toBeInTheDocument();
+  // Look for the 'Product List' heading instead
+  const headingElement = screen.getByText(/Product List/i);
+  expect(headingElement).toBeInTheDocument();
 });
