@@ -12,20 +12,19 @@ jobs:
       contents: read
       packages: write
 
-    env:
-      ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}  # Add the ACCESS_TOKEN as an environment variable
-
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4  # Update to the latest version
+      with:
+        token: ${{ secrets.ACCESS_TOKEN }}
 
     - name: Set up Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4  # Update to the latest version
       with:
-        node-version: '18'
+        node-version: '20'  # Specify the latest supported Node.js version
 
     - name: Cache Node.js dependencies   # Caching dependencies step
-      uses: actions/cache@v3
+      uses: actions/cache@v4  # Update to the latest version
       with:
         path: ~/.npm
         key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -36,8 +35,12 @@ jobs:
       run: npm install
       working-directory: ./api
 
+    - name: Set Jest executable permissions
+      run: chmod +x node_modules/.bin/jest
+      working-directory: ./api
+
     - name: Run tests
-      run: npm test
+      run: npx jest
       working-directory: ./api
 
     - name: Configure AWS credentials
