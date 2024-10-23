@@ -37,7 +37,7 @@ jobs:
       working-directory: ./api
 
     - name: Run tests
-      run: npx jest
+      run: npm test
       working-directory: ./api
 
     - name: Configure AWS credentials
