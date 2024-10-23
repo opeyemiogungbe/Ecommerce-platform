@@ -12,6 +12,9 @@ jobs:
       contents: read
       packages: write
 
+    env:
+      ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}  # Add the ACCESS_TOKEN as an environment variable
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
