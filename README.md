@@ -119,19 +119,82 @@ Below is a picture of our test result;
 ### Workflow Configuration
 GitHub Actions workflow files
 
-Key Workflows
+**Backend.yml**:
+```
+name: Backend CI/CD
 
-backend.yml:
+on:
+  push:
+    branches:
+      - main
 
-Node.js dependency installation
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
-Unit test execution
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4  # Update to the latest version
+      with:
+        token: ${{ secrets.ACCESS_TOKEN }}
 
-Docker image build
+    - name: Set up Node.js
+      uses: actions/setup-node@v4  # Update to the latest version
+      with:
+        node-version: '20'  # Specify the latest supported Node.js version
 
-Security scanning
+    - name: Cache Node.js dependencies   # Caching dependencies step
+      uses: actions/cache@v4  # Update to the latest version
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
 
-frontend.yml:
+    - name: Install dependencies
+      run: npm install
+      working-directory: ./api
+
+    - name: Set Jest executable permissions
+      run: chmod +x node_modules/.bin/jest
+      working-directory: ./api
+
+    - name: Run tests
+      run: npx jest
+      working-directory: ./api
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v3
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Log in to Amazon ECR
+      id: login-ecr
+      run: |
+        aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | \
+        docker login --username AWS --password-stdin 381491862732.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+
+    - name: Build Docker image
+      run: docker build -t backend:latest -f api/Dockerfile ./api
+
+    - name: Tag Docker image
+      run: docker tag backend:latest 381491862732.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/backend-repo:latest
+
+    - name: Push Docker image to ECR
+      run: docker push 381491862732.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/backend-repo:latest
+```
+
+Purpose:
+The above yaml files automate testing, Docker image creation, and deployment of the Node.js backend to AWS ECR. Ensures code quality and enables seamless updates to cloud infrastructure.
+
+
+**Frontend.yml**:
+```
 
 React build process
 
