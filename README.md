@@ -109,6 +109,11 @@ npm install
 npm start    # Starts app on port 3001
 ```
 
+Below is a picture of our test result;
+
+![Image](https://github.com/user-attachments/assets/73d20dd5-039c-481c-9a73-529d02f6ab2f)
+
+
 ## GitHub Actions Workflow <a name="github-actions-workflow"></a>
 
 ### Workflow Configuration
