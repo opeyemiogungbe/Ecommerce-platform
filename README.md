@@ -21,11 +21,7 @@ By automating the development lifecycle, businesses can focus on growth and cust
 3. [Project Structure](#project-structure)
 4. [Local Development Setup](#local-development-setup)
 5. [GitHub Actions Workflow](#github-actions-workflow)
-6. [Docker Integration](#docker-integration)
-7. [Cloud Deployment](#cloud-deployment)
-8. [Security Measures](#security-measures)
-9. [Contributing](#contributing)
-10. [License](#license)
+6. [Cloud Deployment](#cloud-deployment)
 
 ---
 
@@ -57,11 +53,11 @@ The infrastructure leverages GitHub Actions for continuous integration/delivery,
 
 ```
 └── ecommerce-platform/
-    
-    ├── .github/
-    │   └── workflows/
-    │       ├── backend.yml    # CI/CD for Node.js API (Backend)
-    │       ├── frontend.yml   # CI/CD for React app (Frontend)
+    .github/
+    ├── workflows/
+    │   ├── backend-ci.yml    # Build/test backend
+    │   ├── frontend-ci.yml   # Build/test frontend
+    │   └── deploy.yml        # Deploy to AWS (ECS/EC2/Lambda)
     │       
     ├── api/
     │   ├── src/
@@ -95,15 +91,25 @@ The infrastructure leverages GitHub Actions for continuous integration/delivery,
 - Docker
 - Git
 
-### Backend Setup
+### Task 1: Backend Api Setup
+1. We initialize a Git repository and add it to our project structure. We are also going to create Github/workflows directory in our repository for github actions.
+2. In the home directory, we are going to create two directory/folder which is the API (for our backend) 
+3. We are going to install Node.js projects to install all dependencies listed in the package.json file.
+
 ```
+mkkdir Api
 cd api
 npm install
 npm run dev  # Starts server on port 3000
 npm test     # Run unit tests
 ```
-### Frontend Setup
+
+### Task 2: Frontend webapp Setup
+1. From the home directory, we are going to create the webapp directoryand navigate to it
+2. We will install React
+
 ```
+mkdir webapp
 cd webapp
 npm install
 npm start    # Starts app on port 3001
@@ -195,9 +201,116 @@ The above yaml files automate testing, Docker image creation, and deployment of 
 
 **Frontend.yml**:
 ```
+name: Frontend CI/CD
 
-React build process
+on:
+  push:
+    branches:
+      - main
 
-Lighthouse audit
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
-Artifact upload
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: Cache Node.js dependencies   # Caching dependencies step
+      uses: actions/cache@v3
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
+
+    - name: Install dependencies
+      run: npm install
+      working-directory: ./webapp
+
+    - name: Run tests
+      run: npm test
+      working-directory: ./webapp
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v3
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Log in to Amazon ECR
+      id: login-ecr
+      run: |
+        aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | \
+        docker login --username AWS --password-stdin 381491862732.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+
+    - name: Build Docker image
+      run: docker build -t frontend:latest -f webapp/Dockerfile ./webapp
+
+    - name: Tag Docker image
+      run: docker tag frontend:latest 381491862732.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/frontend-repo:latest
+
+    - name: Push Docker image to ECR
+      run: docker push 381491862732.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/frontend-repo:latest
+```
+
+The above GitHub Actions YAML file defines a CI/CD pipeline for a frontend application. It automates the process of building, testing, and deploying the frontend to AWS Elastic Container Registry (ECR).
+
+**Deployment.yml**
+
+We decided to separate our deployment because we believe its the best for, modularity, security, reuse, easy maintainance, clear trigger and troubleshooting. it's always best practices to separate CI from CD. We also want to use Amazon ECS for our deployment. ECS is a great choice for containerized applications, and it can handle both our backend (Node.js/Express) and frontend (React) seamlessly. 
+Here's how you can set it up:
+
+
+
+```
+name: ECS Deployment
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Deploy Backend to ECS
+      run: |
+        aws ecs update-service \
+          --cluster ecommerce-cluster \
+          --service backend-service \
+          --force-new-deployment \
+          --region ${{ secrets.AWS_REGION }}
+
+    - name: Deploy Frontend to ECS
+      run: |
+        aws ecs update-service \
+          --cluster ecommerce-cluster \
+          --service frontend-service \
+          --force-new-deployment \
+          --region ${{ secrets.AWS_REGION }}
+```
+
