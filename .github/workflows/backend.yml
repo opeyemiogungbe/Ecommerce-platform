@@ -54,13 +54,13 @@ jobs:
       id: login-ecr
       run: |
         aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | \
-        docker login --username AWS --password-stdin 381491862732.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+        docker login --username AWS --password-stdin 796973496017.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
 
     - name: Build Docker image
       run: docker build -t backend:latest -f api/Dockerfile ./api
 
     - name: Tag Docker image
-      run: docker tag backend:latest 381491862732.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/backend-repo:latest
+      run: docker tag backend:latest 796973496017.dkr.ecr.us-east-1.amazonaws.com/ecommerce/backend-app
 
     - name: Push Docker image to ECR
-      run: docker push 381491862732.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/backend-repo:latest
+      run: docker push 796973496017.dkr.ecr.us-east-1.amazonaws.com/ecommerce/backend-app
