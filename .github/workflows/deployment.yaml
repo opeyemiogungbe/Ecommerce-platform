@@ -20,7 +20,6 @@ env:
 
 jobs:
   deploy-frontend:
-    if: contains(github.event.head_commit.message, 'frontend') || contains(github.event.commits[0].modified, 'frontend/')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -52,7 +51,6 @@ jobs:
           aws ecs update-service --cluster $ECS_CLUSTER --service $FRONTEND_SERVICE --task-definition $NEW_TASK_DEF_ARN --force-new-deployment
 
   deploy-backend:
-    if: contains(github.event.head_commit.message, 'backend') || contains(github.event.commits[0].modified, 'backend/')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
