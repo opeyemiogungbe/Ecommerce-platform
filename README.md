@@ -341,4 +341,4 @@ This project successfully implements a modern e-commerce platform with a fully a
 Future Enhancements includes.
 Add monitoring (CloudWatch, Prometheus/Grafana), Implement blue/green deployments for zero-downtime updates, and Extend to multi-environment deployments (staging/production).
 
-This project provides a robust foundation for modern e-commerce applications, balancing agility, scalability, and reliability. Leveraging automation and cloud-native tools ensures rapid iteration cycles while maintaining production-grade stability. Thanks
+This project provides a robust foundation for modern e-commerce applications, balancing agility, scalability, and reliability. Leveraging automation and cloud-native tools ensures rapid iteration cycles while maintaining production-grade stability. Thanks.
