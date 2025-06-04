@@ -2,9 +2,8 @@ name: Deploy to ECS
 
 on:
   push:
-    paths:
-      - 'frontend/**'
-      - 'backend/**'
+    branches:
+      - main
 
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
