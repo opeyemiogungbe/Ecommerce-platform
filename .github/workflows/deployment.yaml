@@ -1,0 +1,85 @@
+name: Deploy to ECS
+
+on:
+  push:
+    paths:
+      - 'frontend/**'
+      - 'backend/**'
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  ECS_CLUSTER: ${{ secrets.ECS_CLUSTER }}
+
+  ECR_FRONTEND_REPO: ${{ secrets.ECR_FRONTEND_REPO }}
+  ECR_BACKEND_REPO: ${{ secrets.ECR_BACKEND_REPO }}
+
+  FRONTEND_TASK: ${{ secrets.FRONTEND_TASK }}
+  BACKEND_TASK: ${{ secrets.BACKEND_TASK }}
+
+  FRONTEND_SERVICE: ${{ secrets.FRONTEND_SERVICE }}
+  BACKEND_SERVICE: ${{ secrets.BACKEND_SERVICE }}
+
+jobs:
+  deploy-frontend:
+    if: contains(github.event.head_commit.message, 'frontend') || contains(github.event.commits[0].modified, 'frontend/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: $AWS_REGION
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push frontend image
+        run: |
+          docker build -t $ECR_FRONTEND_REPO:latest ./frontend
+          docker push $ECR_FRONTEND_REPO:latest
+
+      - name: Update frontend task definition
+        run: |
+          TASK_DEF=$(aws ecs describe-task-definition --task-definition $FRONTEND_TASK)
+          echo "$TASK_DEF" | jq '.taskDefinition.containerDefinitions[0].image = "'$ECR_FRONTEND_REPO':latest"' | \
+          jq '{family: .taskDefinition.family, executionRoleArn: .taskDefinition.executionRoleArn, networkMode: .taskDefinition.networkMode, containerDefinitions: .containerDefinitions, requiresCompatibilities: .taskDefinition.requiresCompatibilities, cpu: .taskDefinition.cpu, memory: .taskDefinition.memory}' > frontend-task-def.json
+
+          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json file://frontend-task-def.json --query 'taskDefinition.taskDefinitionArn' --output text)
+
+          aws ecs update-service --cluster $ECS_CLUSTER --service $FRONTEND_SERVICE --task-definition $NEW_TASK_DEF_ARN --force-new-deployment
+
+  deploy-backend:
+    if: contains(github.event.head_commit.message, 'backend') || contains(github.event.commits[0].modified, 'backend/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: $AWS_REGION
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push backend image
+        run: |
+          docker build -t $ECR_BACKEND_REPO:latest ./backend
+          docker push $ECR_BACKEND_REPO:latest
+
+      - name: Update backend task definition
+        run: |
+          TASK_DEF=$(aws ecs describe-task-definition --task-definition $BACKEND_TASK)
+          echo "$TASK_DEF" | jq '.taskDefinition.containerDefinitions[0].image = "'$ECR_BACKEND_REPO':latest"' | \
+          jq '{family: .taskDefinition.family, executionRoleArn: .taskDefinition.executionRoleArn, networkMode: .taskDefinition.networkMode, containerDefinitions: .containerDefinitions, requiresCompatibilities: .taskDefinition.requiresCompatibilities, cpu: .taskDefinition.cpu, memory: .taskDefinition.memory}' > backend-task-def.json
+
+          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json file://backend-task-def.json --query 'taskDefinition.taskDefinitionArn' --output text)
+
+          aws ecs update-service --cluster $ECS_CLUSTER --service $BACKEND_SERVICE --task-definition $NEW_TASK_DEF_ARN --force-new-deployment
