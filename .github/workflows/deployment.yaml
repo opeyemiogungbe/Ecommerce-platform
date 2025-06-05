@@ -5,19 +5,6 @@ on:
     branches:
       - main
 
-env:
-  AWS_REGION: ${{ secrets.AWS_REGION }}
-  ECS_CLUSTER: ${{ secrets.ECS_CLUSTER }}
-
-  ECR_FRONTEND_REPO: ${{ secrets.ECR_FRONTEND_REPO }}
-  ECR_BACKEND_REPO: ${{ secrets.ECR_BACKEND_REPO }}
-
-  FRONTEND_TASK: ${{ secrets.FRONTEND_TASK }}
-  BACKEND_TASK: ${{ secrets.BACKEND_TASK }}
-
-  FRONTEND_SERVICE: ${{ secrets.FRONTEND_SERVICE }}
-  BACKEND_SERVICE: ${{ secrets.BACKEND_SERVICE }}
-
 jobs:
   deploy-frontend:
     runs-on: ubuntu-latest
@@ -36,19 +23,41 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build and push frontend image
+        env:
+          ECR_FRONTEND_REPO: ${{ secrets.ECR_FRONTEND_REPO }}
         run: |
-          docker build -t $ECR_FRONTEND_REPO:latest ./webapp
-          docker push $ECR_FRONTEND_REPO:latest
+          docker build -t "$ECR_FRONTEND_REPO:latest" ./webapp
+          docker push "$ECR_FRONTEND_REPO:latest"
 
-      - name: Update frontend task definition
+      - name: Update frontend ECS task definition
+        env:
+          FRONTEND_TASK: ${{ secrets.FRONTEND_TASK }}
+          ECR_FRONTEND_REPO: ${{ secrets.ECR_FRONTEND_REPO }}
+          ECS_CLUSTER: ${{ secrets.ECS_CLUSTER }}
+          FRONTEND_SERVICE: ${{ secrets.FRONTEND_SERVICE }}
         run: |
-          TASK_DEF=$(aws ecs describe-task-definition --task-definition $FRONTEND_TASK)
-          echo "$TASK_DEF" | jq '.taskDefinition.containerDefinitions[0].image = "'$ECR_FRONTEND_REPO':latest"' | \
-          jq '{family: .taskDefinition.family, executionRoleArn: .taskDefinition.executionRoleArn, networkMode: .taskDefinition.networkMode, containerDefinitions: .containerDefinitions, requiresCompatibilities: .taskDefinition.requiresCompatibilities, cpu: .taskDefinition.cpu, memory: .taskDefinition.memory}' > frontend-task-def.json
+          aws ecs describe-task-definition --task-definition "$FRONTEND_TASK" > task-def.json
+          cat task-def.json | jq \
+            --arg IMAGE "$ECR_FRONTEND_REPO:latest" \
+            '.taskDefinition.containerDefinitions[0].image = $IMAGE |
+             {family: .taskDefinition.family,
+              executionRoleArn: .taskDefinition.executionRoleArn,
+              networkMode: .taskDefinition.networkMode,
+              containerDefinitions: .taskDefinition.containerDefinitions,
+              requiresCompatibilities: .taskDefinition.requiresCompatibilities,
+              cpu: .taskDefinition.cpu,
+              memory: .taskDefinition.memory}' > frontend-task-def.json
 
-          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json file://frontend-task-def.json --query 'taskDefinition.taskDefinitionArn' --output text)
+          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://frontend-task-def.json \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
 
-          aws ecs update-service --cluster $ECS_CLUSTER --service $FRONTEND_SERVICE --task-definition $NEW_TASK_DEF_ARN --force-new-deployment
+          aws ecs update-service \
+            --cluster "$ECS_CLUSTER" \
+            --service "$FRONTEND_SERVICE" \
+            --task-definition "$NEW_TASK_DEF_ARN" \
+            --force-new-deployment
 
   deploy-backend:
     runs-on: ubuntu-latest
@@ -67,16 +76,38 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build and push backend image
+        env:
+          ECR_BACKEND_REPO: ${{ secrets.ECR_BACKEND_REPO }}
         run: |
-          docker build -t $ECR_BACKEND_REPO:latest ./api
-          docker push $ECR_BACKEND_REPO:latest
+          docker build -t "$ECR_BACKEND_REPO:latest" ./api
+          docker push "$ECR_BACKEND_REPO:latest"
 
-      - name: Update backend task definition
+      - name: Update backend ECS task definition
+        env:
+          BACKEND_TASK: ${{ secrets.BACKEND_TASK }}
+          ECR_BACKEND_REPO: ${{ secrets.ECR_BACKEND_REPO }}
+          ECS_CLUSTER: ${{ secrets.ECS_CLUSTER }}
+          BACKEND_SERVICE: ${{ secrets.BACKEND_SERVICE }}
         run: |
-          TASK_DEF=$(aws ecs describe-task-definition --task-definition $BACKEND_TASK)
-          echo "$TASK_DEF" | jq '.taskDefinition.containerDefinitions[0].image = "'$ECR_BACKEND_REPO':latest"' | \
-          jq '{family: .taskDefinition.family, executionRoleArn: .taskDefinition.executionRoleArn, networkMode: .taskDefinition.networkMode, containerDefinitions: .containerDefinitions, requiresCompatibilities: .taskDefinition.requiresCompatibilities, cpu: .taskDefinition.cpu, memory: .taskDefinition.memory}' > backend-task-def.json
+          aws ecs describe-task-definition --task-definition "$BACKEND_TASK" > task-def.json
+          cat task-def.json | jq \
+            --arg IMAGE "$ECR_BACKEND_REPO:latest" \
+            '.taskDefinition.containerDefinitions[0].image = $IMAGE |
+             {family: .taskDefinition.family,
+              executionRoleArn: .taskDefinition.executionRoleArn,
+              networkMode: .taskDefinition.networkMode,
+              containerDefinitions: .taskDefinition.containerDefinitions,
+              requiresCompatibilities: .taskDefinition.requiresCompatibilities,
+              cpu: .taskDefinition.cpu,
+              memory: .taskDefinition.memory}' > backend-task-def.json
 
-          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json file://backend-task-def.json --query 'taskDefinition.taskDefinitionArn' --output text)
+          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://backend-task-def.json \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
 
-          aws ecs update-service --cluster $ECS_CLUSTER --service $BACKEND_SERVICE --task-definition $NEW_TASK_DEF_ARN --force-new-deployment
+          aws ecs update-service \
+            --cluster "$ECS_CLUSTER" \
+            --service "$BACKEND_SERVICE" \
+            --task-definition "$NEW_TASK_DEF_ARN" \
+            --force-new-deployment
