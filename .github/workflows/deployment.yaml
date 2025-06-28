@@ -6,17 +6,18 @@ on:
       - main
 
 env:
-  AWS_REGION: "${{ secrets.AWS_REGION }}"
-  ECS_CLUSTER: "${{ secrets.ECS_CLUSTER }}"
-  ECR_FRONTEND_REPO: "${{ secrets.ECR_FRONTEND_REPO }}"
-  ECR_BACKEND_REPO: "${{ secrets.ECR_BACKEND_REPO }}"
-  FRONTEND_TASK: "${{ secrets.FRONTEND_TASK }}"
-  BACKEND_TASK: "${{ secrets.BACKEND_TASK }}"
-  FRONTEND_SERVICE: "${{ secrets.FRONTEND_SERVICE }}"
-  BACKEND_SERVICE: "${{ secrets.BACKEND_SERVICE }}"
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  ECS_CLUSTER: ${{ secrets.ECS_CLUSTER }}
+  ECR_FRONTEND_REPO: ${{ secrets.ECR_FRONTEND_REPO }}
+  ECR_BACKEND_REPO: ${{ secrets.ECR_BACKEND_REPO }}
+  FRONTEND_TASK: ${{ secrets.FRONTEND_TASK }}
+  BACKEND_TASK: ${{ secrets.BACKEND_TASK }}
+  FRONTEND_SERVICE: ${{ secrets.FRONTEND_SERVICE }}
+  BACKEND_SERVICE: ${{ secrets.BACKEND_SERVICE }}
 
 jobs:
   deploy-frontend:
+    name: Frontend CI/CD / ECS Deploy
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -25,9 +26,9 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: "${{ secrets.AWS_ACCESS_KEY_ID }}"
-          aws-secret-access-key: "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
-          aws-region: "${{ secrets.AWS_REGION }}"
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
@@ -48,9 +49,7 @@ jobs:
             jq 'del(.taskDefinition.taskDefinitionArn, .taskDefinition.revision, .taskDefinition.status, .taskDefinition.requiresAttributes, .taskDefinition.compatibilities, .taskDefinition.registeredAt, .taskDefinition.registeredBy)' \
             > frontend-task-def.json
 
-          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
-            --cli-input-json file://frontend-task-def.json \
-            --query 'taskDefinition.taskDefinitionArn' --output text)
+          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json file://frontend-task-def.json --query 'taskDefinition.taskDefinitionArn' --output text)
 
           aws ecs update-service \
             --cluster $ECS_CLUSTER \
@@ -59,6 +58,7 @@ jobs:
             --force-new-deployment
 
   deploy-backend:
+    name: Backend CI/CD / ECS Deploy
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -67,9 +67,9 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: "${{ secrets.AWS_ACCESS_KEY_ID }}"
-          aws-secret-access-key: "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
-          aws-region: "${{ secrets.AWS_REGION }}"
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
@@ -90,9 +90,7 @@ jobs:
             jq 'del(.taskDefinition.taskDefinitionArn, .taskDefinition.revision, .taskDefinition.status, .taskDefinition.requiresAttributes, .taskDefinition.compatibilities, .taskDefinition.registeredAt, .taskDefinition.registeredBy)' \
             > backend-task-def.json
 
-          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
-            --cli-input-json file://backend-task-def.json \
-            --query 'taskDefinition.taskDefinitionArn' --output text)
+          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json file://backend-task-def.json --query 'taskDefinition.taskDefinitionArn' --output text)
 
           aws ecs update-service \
             --cluster $ECS_CLUSTER \
