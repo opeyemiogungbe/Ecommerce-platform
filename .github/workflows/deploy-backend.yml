@@ -42,8 +42,8 @@ jobs:
         run: |
           TASK_DEF=$(aws ecs describe-task-definition --task-definition $BACKEND_TASK)
           echo "$TASK_DEF" | jq --arg IMAGE "$ECR_BACKEND_REPO:latest" \
-            '.taskDefinition.containerDefinitions[0].image = $IMAGE' | \
-            jq 'del(.taskDefinition.taskDefinitionArn, .taskDefinition.revision, .taskDefinition.status, .taskDefinition.requiresAttributes, .taskDefinition.compatibilities, .taskDefinition.registeredAt, .taskDefinition.registeredBy)' \
+            '.taskDefinition | .containerDefinitions[0].image = $IMAGE' | \
+            jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' \
             > backend-task-def.json
 
           NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
