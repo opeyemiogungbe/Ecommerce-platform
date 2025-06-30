@@ -1,0 +1,57 @@
+name: Deploy Frontend to ECS
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'webapp/**'
+      - '.github/workflows/deploy-frontend.yml'
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  ECS_CLUSTER: ${{ secrets.ECS_CLUSTER }}
+  ECR_FRONTEND_REPO: ${{ secrets.ECR_FRONTEND_REPO }}
+  FRONTEND_TASK: ${{ secrets.FRONTEND_TASK }}
+  FRONTEND_SERVICE: ${{ secrets.FRONTEND_SERVICE }}
+
+jobs:
+  deploy-frontend:
+    name: Deploy to ECS / deploy-frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push frontend image
+        run: |
+          docker build -t $ECR_FRONTEND_REPO:latest ./webapp
+          docker push $ECR_FRONTEND_REPO:latest
+
+      - name: Update frontend ECS task
+        run: |
+          TASK_DEF=$(aws ecs describe-task-definition --task-definition $FRONTEND_TASK)
+          echo "$TASK_DEF" | jq --arg IMAGE "$ECR_FRONTEND_REPO:latest" \
+            '.taskDefinition.containerDefinitions[0].image = $IMAGE' | \
+            jq 'del(.taskDefinition.taskDefinitionArn, .taskDefinition.revision, .taskDefinition.status, .taskDefinition.requiresAttributes, .taskDefinition.compatibilities, .taskDefinition.registeredAt, .taskDefinition.registeredBy)' \
+            > frontend-task-def.json
+
+          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://frontend-task-def.json \
+            --query 'taskDefinition.taskDefinitionArn' --output text)
+
+          aws ecs update-service \
+            --cluster $ECS_CLUSTER \
+            --service $FRONTEND_SERVICE \
+            --task-definition $NEW_TASK_DEF_ARN \
+            --force-new-deployment
