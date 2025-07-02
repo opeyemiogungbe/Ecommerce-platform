@@ -55,9 +55,10 @@ The infrastructure leverages GitHub Actions for continuous integration/delivery,
 └── ecommerce-platform/
     .github/
     ├── workflows/
-    │   ├── backend-ci.yml    # Build/test backend
-    │   ├── frontend-ci.yml   # Build/test frontend
-    │   └── deploy.yml        # Deploy to AWS (ECS/EC2/Lambda)
+    │   ├── backend.yml               # Build/test backend
+    │   ├── frontend.yml              # Build/test frontend
+    |   |-- deploy-frontend.yml       # Deploy frontend to AWS (ECS/EC2/fargate)
+    │   └── deploy-backend.yml        # Deploy backend to AWS (ECS/EC2/fargate)
     │       
     ├── api/
     │   ├── src/
@@ -265,54 +266,154 @@ jobs:
 
 The above GitHub Actions YAML file defines a CI/CD pipeline for a frontend application. It automates the process of building, testing, and deploying the frontend to AWS Elastic Container Registry (ECR).
 
-**Deployment.yml**
+**Deployment**
 
-We decided to separate our deployment because we believe it's the best for, modularity, security, reuse, easy maintenance, clear trigger, and troubleshooting. it's always best practice to separate CI from CD. We also want to use Amazon ECS for our deployment. ECS is a great choice for containerized applications, and it can handle both our backend (Node.js/Express) and frontend (React) seamlessly. 
+We decided to separate our deployment because we believe it's the best for, modularity, security, reuse, easy maintenance, clear trigger, and troubleshooting. it's always best practice to separate CI from CD. We will also be separating our frontend and backend deployment for thesame purpose using Amazon ECS for our deployment. ECS is a great choice for containerized applications, and it can handle both our backend (Node.js/Express) and frontend (React) seamlessly. 
 Here's how you can set it up:
 
 
+**deploy-frontend.yml**
 
 ```
-name: ECS Deployment
+name: Deploy Frontend to ECS
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+  
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  ECS_CLUSTER: ${{ secrets.ECS_CLUSTER }}
+  ECR_FRONTEND_REPO: ${{ secrets.ECR_FRONTEND_REPO }}
+  FRONTEND_TASK: ${{ secrets.FRONTEND_TASK }}
+  FRONTEND_SERVICE: ${{ secrets.FRONTEND_SERVICE }}
 
 jobs:
-  deploy:
+  deploy-frontend:
+    name: Deploy to ECS / deploy-frontend
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ secrets.AWS_REGION }}
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
-    - name: Deploy Backend to ECS
-      run: |
-        aws ecs update-service \
-          --cluster ecommerce-cluster \
-          --service backend-service \
-          --force-new-deployment \
-          --region ${{ secrets.AWS_REGION }}
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
 
-    - name: Deploy Frontend to ECS
-      run: |
-        aws ecs update-service \
-          --cluster ecommerce-cluster \
-          --service frontend-service \
-          --force-new-deployment \
-          --region ${{ secrets.AWS_REGION }}
+      - name: Build and push frontend image
+        run: |
+          docker build -t $ECR_FRONTEND_REPO:latest ./webapp
+          docker push $ECR_FRONTEND_REPO:latest
+
+      - name: Update frontend ECS task
+        run: |
+          TASK_DEF=$(aws ecs describe-task-definition --task-definition $FRONTEND_TASK)
+          echo "$TASK_DEF" | jq --arg IMAGE "$ECR_FRONTEND_REPO:latest" \
+            '.taskDefinition | .containerDefinitions[0].image = $IMAGE' | \
+            jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' \
+            > frontend-task-def.json
+
+          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://frontend-task-def.json \
+            --query 'taskDefinition.taskDefinitionArn' --output text)
+
+          aws ecs update-service \
+            --cluster $ECS_CLUSTER \
+            --service $FRONTEND_SERVICE \
+            --task-definition $NEW_TASK_DEF_ARN \
+            --force-new-deployment
 ```
+The above file does the folowing
+
+Trigger: Runs on every push to main.
+
+Environment: Uses secret values (like AWS region, ECS cluster, ECR repo, task/service names).
+
+Job steps:
+
+✅ Check out code from GitHub.
+
+🔐 Authenticate with AWS using GitHub Secrets.
+
+🐳 Login to Amazon ECR (Elastic Container Registry).
+
+🏗️ Build & push Docker image from the webapp folder to ECR.
+
+📦 Fetch current ECS task definition, update image URL, and save as JSON.
+
+🔄 Register the new task definition and update the ECS service to deploy it.
+
+
+**deployment-backend.yml**
+
+```
+name: Deploy Backend to ECS
+
+on:
+  push:
+    branches:
+      - main
+      
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  ECS_CLUSTER: ${{ secrets.ECS_CLUSTER }}
+  ECR_BACKEND_REPO: ${{ secrets.ECR_BACKEND_REPO }}
+  BACKEND_TASK: ${{ secrets.BACKEND_TASK }}
+  BACKEND_SERVICE: ${{ secrets.BACKEND_SERVICE }}
+
+jobs:
+  deploy-backend:
+    name: Deploy to ECS / deploy-backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push backend image
+        run: |
+          docker build -t $ECR_BACKEND_REPO:latest ./api
+          docker push $ECR_BACKEND_REPO:latest
+
+      - name: Update backend ECS task
+        run: |
+          TASK_DEF=$(aws ecs describe-task-definition --task-definition $BACKEND_TASK)
+          echo "$TASK_DEF" | jq --arg IMAGE "$ECR_BACKEND_REPO:latest" \
+            '.taskDefinition | .containerDefinitions[0].image = $IMAGE' | \
+            jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' \
+            > backend-task-def.json
+
+          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://backend-task-def.json \
+            --query 'taskDefinition.taskDefinitionArn' --output text)
+
+          aws ecs update-service \
+            --cluster $ECS_CLUSTER \
+            --service $BACKEND_SERVICE \
+            --task-definition $NEW_TASK_DEF_ARN \
+            --force-new-deployment
+```
+
+
+
+Just like frontend deployment, this backend.yml file also does the same thing.
+
 
 This project successfully implements a modern e-commerce platform with a fully automated CI/CD pipeline, demonstrating industry best practices in DevOps, cloud deployment, and infrastructure management. Key achievements include:
 
