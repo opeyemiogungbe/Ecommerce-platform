@@ -8,3 +8,9 @@ describe('GET /products', () => {
         expect(res.body.length).toBeGreaterThan(0);
     });
 });
+
+const mongoose = require('mongoose');
+
+afterAll(async () => {
+  await mongoose.connection.close();
+});
