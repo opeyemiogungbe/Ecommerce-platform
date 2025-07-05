@@ -410,7 +410,7 @@ jobs:
             --force-new-deployment
 ```
 
-
+![our ci/cd pipeline](https://i.postimg.cc/WbJfpYpz/Screenshot-2025-07-02-021309.png)
 
 Just like frontend deployment, this backend.yml file also does the same thing.
 
@@ -438,6 +438,8 @@ This project successfully implements a modern e-commerce platform with a fully a
 10. Flexibility:
 
 11. Modular workflow design for easy maintenance and future scaling.
+
+![Screenshot of our frontend setup](https://i.postimg.cc/5N6khCJ1/Screenshot-2025-07-05-073119.png)
 
 Future Enhancements includes.
 Add monitoring (CloudWatch, Prometheus/Grafana), Implement blue/green deployments for zero-downtime updates, and Extend to multi-environment deployments (staging/production).
