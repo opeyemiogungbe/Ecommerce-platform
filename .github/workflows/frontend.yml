@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'webapp/**'
 
 jobs:
   build-and-deploy:

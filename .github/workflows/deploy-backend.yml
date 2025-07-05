@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'api/**'  # Trigger on changes in the API directory
       
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
